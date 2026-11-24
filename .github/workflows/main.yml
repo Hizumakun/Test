@@ -57,7 +57,7 @@ jobs:
 
           Restart-Service TermService -Force
 
-      - name: Create Restricted RDP User
+      - name: Create Admin RDP User
         shell: powershell
         env:
           RDP_PASSWORD: ${{ secrets.RDP_PASSWORD }}
@@ -93,12 +93,12 @@ jobs:
               -Password $securePass
           }
 
-          # Add user to Remote Desktop Users only
-          $members = Get-LocalGroupMember `
+          # Add user to Remote Desktop Users
+          $rdpMembers = Get-LocalGroupMember `
             -Group "Remote Desktop Users" `
             -ErrorAction SilentlyContinue
 
-          if (-not ($members | Where-Object {
+          if (-not ($rdpMembers | Where-Object {
             $_.Name -match '\\RDP$'
           })) {
             Add-LocalGroupMember `
@@ -106,9 +106,20 @@ jobs:
               -Member "RDP"
           }
 
-          # Do NOT add RDP to Administrators
+          # Add user to Administrators
+          $adminMembers = Get-LocalGroupMember `
+            -Group "Administrators" `
+            -ErrorAction SilentlyContinue
 
-          Write-Host "RDP user configured successfully."
+          if (-not ($adminMembers | Where-Object {
+            $_.Name -match '\\RDP$'
+          })) {
+            Add-LocalGroupMember `
+              -Group "Administrators" `
+              -Member "RDP"
+          }
+
+          Write-Host "RDP admin user configured successfully."
 
       - name: Install Tailscale
         shell: powershell
